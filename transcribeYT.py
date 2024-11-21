@@ -5,6 +5,12 @@ import re
 
 # Función para descargar el audio del video de YouTube y devolver el nombre del video sin el código
 def download_audio_from_youtube(video_url):
+    # Solicitar la ruta de almacenamiento al usuario
+    output_path = input("Ingrese la ruta donde desea almacenar el archivo de audio (deje vacío para la carpeta actual): ").strip()
+    if not output_path:
+        output_path = "."  # Directorio actual
+    output_path = os.path.join(output_path, '%(title)s.%(ext)s')
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -12,25 +18,23 @@ def download_audio_from_youtube(video_url):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'outtmpl': '%(title)s.%(ext)s',  # Personaliza el nombre para que no incluya el ID del video
-        'quiet': True,  # Desactiva la salida de texto en la consola
+        'outtmpl': output_path,  # Usar la ruta proporcionada por el usuario
+        'quiet': True,
     }
-    
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(video_url, download=True)
-        video_title = info_dict.get('title', 'video_sin_nombre')
+        video_title = info_dict.get('title', 'audio_sin_nombre')
         audio_file = f"{video_title}.mp3"
-    
-    # Limpieza del nombre del archivo para eliminar caracteres no permitidos en nombres de archivo
+
     clean_audio_file = re.sub(r'[\\/*?:"<>|]', "", audio_file)
+    full_path = os.path.join(os.path.dirname(output_path), clean_audio_file)
     
-    # Si el nombre del archivo descargado difiere del nombre limpio, renombrar el archivo
-    if os.path.exists(audio_file) and audio_file != clean_audio_file:
-        os.rename(audio_file, clean_audio_file)
+    if os.path.exists(audio_file) and audio_file != full_path:
+        os.rename(audio_file, full_path)
     
-    print(f"El audio ha sido descargado con el nombre {clean_audio_file}.")
-    
-    return clean_audio_file, video_title
+    print(f"El audio ha sido descargado en '{full_path}'.")
+    return full_path, video_title
 
 # Función para transcribir el audio a texto usando Whisper
 def transcribe_audio(audio_path, language='es'):
@@ -38,21 +42,32 @@ def transcribe_audio(audio_path, language='es'):
     result = model.transcribe(audio_path, language=language)
     return result['text']
 
-# Función básica para descargar video de YouTube con la calidad seleccionada
+# Función básica para descargar video de YouTube con la calidad seleccionada y limpiar el nombre del archivo
 def download_video_from_youtube(video_url, quality):
-    ydl_opts = {
-        'format': f'bestvideo[height={quality}]+bestaudio/best',  # Descargar con la calidad elegida
-        'outtmpl': '%(title)s.%(ext)s',  # Guardar el video con el nombre del título
-        'quiet': True,  # Desactiva la salida de texto en la consola
-    }
-    
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
-    
-    info_dict = ydl.extract_info(video_url, download=True)
-    video_title = info_dict.get('title', 'video_sin_nombre')
+    output_path = input("Ingrese la ruta donde desea almacenar el archivo de video (deje vacío para la carpeta actual): ").strip()
+    if not output_path:
+        output_path = "."  # Directorio actual
+    output_path = os.path.join(output_path, '%(title)s.%(ext)s')
 
-    print(f"El video {video_title} ha sido descargado en {quality}p.")
+    ydl_opts = {
+        'format': f'bestvideo[height={quality}]+bestaudio/best',
+        'outtmpl': output_path,
+        'quiet': True,
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(video_url, download=True)
+        video_title = info_dict.get('title', 'video_sin_nombre')
+        video_file = f"{video_title}.mp4"
+
+    clean_video_file = re.sub(r'[\\/*?:"<>|]', "", video_file)
+    full_path = os.path.join(os.path.dirname(output_path), clean_video_file)
+    
+    if os.path.exists(video_file) and video_file != full_path:
+        os.rename(video_file, full_path)
+    
+    print(f"El video '{video_title}' ha sido descargado en {quality}p en '{full_path}'.")
+    return full_path, video_title
 
 # Funcion Wrapper trancribir video de yt
 def transcribe_yt_video():
@@ -106,12 +121,13 @@ if __name__ == "__main__":
             first = False
         else:
             input("Presiona enter para continuar: ")
+            os.system('cls')
             mostrar_menu()
         opcion = input("Seleccione una opción: ")
 
         if opcion == '1':
             video_url = input("Ingresa la URL del video de YouTube: ")
-            chosen_quality = input("Elige una calidad (720p o 1080p): ").strip()
+            chosen_quality = input("Elige una calidad (720 o 1080): ").strip()
             download_video_from_youtube(video_url, chosen_quality)
         elif opcion == '2':
             url = input("Ingresa la URL del video de YouTube: ")
@@ -125,5 +141,3 @@ if __name__ == "__main__":
             break
         else:
             print("Opción inválida. Por favor, intente nuevamente.")
-
-
