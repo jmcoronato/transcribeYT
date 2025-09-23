@@ -2,7 +2,7 @@
 
 > **¡Transforma cualquier video de YouTube en texto de forma automática con una interfaz gráfica moderna!** 🚀
 
-[![Python](https://img.shields.io/badge/Python-3.6+-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![Whisper](https://img.shields.io/badge/OpenAI-Whisper-green.svg)](https://openai.com/research/whisper)
 [![yt-dlp](https://img.shields.io/badge/yt--dlp-latest-red.svg)](https://github.com/yt-dlp/yt-dlp)
 [![ttkbootstrap](https://img.shields.io/badge/ttkbootstrap-GUI-purple.svg)](https://github.com/israel-dryer/ttkbootstrap)
@@ -58,7 +58,7 @@
 
 ### 1. Requisitos del Sistema
 
-- **Python 3.6 o superior** 🐍
+- **Python 3.13 o superior** 🐍
 - **FFmpeg** (para procesamiento de audio/video)
 
 ### 2. Instalar Dependencias
