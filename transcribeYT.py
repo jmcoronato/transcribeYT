@@ -9,14 +9,16 @@ import threading
 from pathlib import Path
 import ttkbootstrap as ttk_bs
 from ttkbootstrap.constants import *
+from datetime import datetime
 
 class TranscribeYTGUI:
     def __init__(self):
         # Crear ventana principal con tema moderno
         self.root = ttk_bs.Window(themename="superhero")
         self.root.title("🎬 TranscribeYT.io")
-        self.root.geometry("950x800")
+        self.root.geometry("900x750")
         self.root.resizable(True, True)
+        self.root.minsize(900, 750)
         
         # Configurar estilo personalizado
         self.setup_custom_styles()
@@ -70,31 +72,65 @@ class TranscribeYTGUI:
         )
         
     def setup_ui(self):
-        # Frame principal con padding
-        main_frame = ttk_bs.Frame(self.root, padding=20)
+        # Configurar el grid del root para mejor control
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        
+        # Frame principal con scrollbar para contenido que no cabe
+        main_canvas = tk.Canvas(self.root)
+        scrollbar = ttk_bs.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
+        scrollable_frame = ttk_bs.Frame(main_canvas)
+        
+        # Función para centrar el contenido en el canvas
+        def configure_scroll_region(event=None):
+            main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+            # Centrar el contenido horizontalmente
+            canvas_width = main_canvas.winfo_width()
+            frame_width = scrollable_frame.winfo_reqwidth()
+            if canvas_width > frame_width:
+                x_offset = (canvas_width - frame_width) // 2
+                main_canvas.create_window((x_offset, 0), window=scrollable_frame, anchor="nw")
+            else:
+                main_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        scrollable_frame.bind("<Configure>", configure_scroll_region)
+        main_canvas.bind("<Configure>", configure_scroll_region)
+        main_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Frame principal centrado usando grid
+        main_frame = ttk_bs.Frame(scrollable_frame, padding=20)
         main_frame.pack(fill=BOTH, expand=True)
         
-        # Título con estilo mejorado
+        # Configurar grid para centrado
+        main_frame.grid_rowconfigure(0, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_columnconfigure(2, weight=1)
+        
+        # Frame interno centrado con grid
+        inner_container = ttk_bs.Frame(main_frame)
+        inner_container.grid(row=0, column=1, sticky="", pady=20)
+        
+        # Título con estilo mejorado y centrado
         title_label = ttk_bs.Label(
-            main_frame, 
+            inner_container, 
             text="🎬 TranscribeYT.io", 
-            font=("Arial", 28, "bold"),
+            font=("Arial", 24, "bold"),
             bootstyle="warning"
         )
-        title_label.pack(pady=(0, 10))
+        title_label.pack(pady=(0, 8))
         
-        # Subtitle con estilo mejorado
+        # Subtitle con estilo mejorado y centrado
         subtitle_label = ttk_bs.Label(
-            main_frame, 
+            inner_container, 
             text="✨ Transforma videos de YouTube en texto automáticamente ✨",
-            font=("Arial", 13, "italic"),
+            font=("Arial", 11, "italic"),
             bootstyle="info"
         )
-        subtitle_label.pack(pady=(0, 25))
+        subtitle_label.pack(pady=(0, 15))
         
-        # Notebook para las diferentes funcionalidades con estilo mejorado
-        notebook = ttk_bs.Notebook(main_frame, bootstyle="warning")
-        notebook.pack(fill=X, pady=(0, 20))
+        # Notebook para las diferentes funcionalidades con ancho fijo
+        notebook = ttk_bs.Notebook(inner_container, bootstyle="warning", width=700)
+        notebook.pack(pady=(0, 15))
         
         # Tab 1: Transcribir video de YouTube
         self.create_transcribe_yt_tab(notebook)
@@ -108,15 +144,27 @@ class TranscribeYTGUI:
         # Tab 4: Descargar contenido
         self.create_download_tab(notebook)
         
-        # Frame para configuración y progreso (no se expande)
-        bottom_frame = ttk_bs.Frame(main_frame)
-        bottom_frame.pack(fill=X, pady=(10, 0))
+        # Frame para configuración y progreso con ancho fijo
+        bottom_container = ttk_bs.Frame(inner_container)
+        bottom_container.pack(fill=X, pady=(10, 0), expand=False)
         
         # Configuración general
-        self.create_settings_frame(bottom_frame)
+        self.create_settings_frame(bottom_container)
         
         # Barra de progreso y estado
-        self.create_progress_frame(bottom_frame)
+        self.create_progress_frame(bottom_container)
+        
+        # Footer con marca registrada
+        self.create_footer_frame(inner_container)
+        
+        # Configurar canvas y scrollbar
+        main_canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Bind mousewheel to canvas
+        def _on_mousewheel(event):
+            main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        main_canvas.bind_all("<MouseWheel>", _on_mousewheel)
         
     def create_transcribe_yt_tab(self, notebook):
         frame = ttk_bs.Frame(notebook, padding=20)
@@ -169,15 +217,19 @@ class TranscribeYTGUI:
         lang_combo.pack(fill=X)
         lang_combo.set("🇪🇸 Español")
         
-        # Botón principal con estilo mejorado
+        # Container para centrar el botón
+        button_container = ttk_bs.Frame(frame)
+        button_container.pack(pady=25, fill=X)
+        
+        # Botón principal con estilo mejorado y centrado
         transcribe_btn = ttk_bs.Button(
-            frame,
+            button_container,
             text="🚀 INICIAR TRANSCRIPCIÓN",
             command=self.start_transcribe_youtube,
             bootstyle="success-outline",
             width=35
         )
-        transcribe_btn.pack(pady=25)
+        transcribe_btn.pack(anchor="center")
         
     def create_transcribe_local_tab(self, notebook):
         frame = ttk_bs.Frame(notebook, padding=20)
@@ -221,15 +273,19 @@ class TranscribeYTGUI:
         lang_combo_local.pack(fill=X)
         lang_combo_local.set("🇪🇸 Español")
         
-        # Botón principal con estilo mejorado
+        # Container para centrar el botón
+        button_container = ttk_bs.Frame(frame)
+        button_container.pack(pady=25, fill=X)
+        
+        # Botón principal con estilo mejorado y centrado
         transcribe_local_btn = ttk_bs.Button(
-            frame,
+            button_container,
             text="🎙️ TRANSCRIBIR AUDIO",
             command=self.start_transcribe_local,
             bootstyle="info-outline",
             width=35
         )
-        transcribe_local_btn.pack(pady=25)
+        transcribe_local_btn.pack(anchor="center")
         
     def create_transcribe_video_tab(self, notebook):
         frame = ttk_bs.Frame(notebook, padding=20)
@@ -273,15 +329,19 @@ class TranscribeYTGUI:
         lang_combo_video.pack(fill=X)
         lang_combo_video.set("🇪🇸 Español")
         
-        # Botón principal con estilo mejorado
+        # Container para centrar el botón
+        button_container = ttk_bs.Frame(frame)
+        button_container.pack(pady=25, fill=X)
+        
+        # Botón principal con estilo mejorado y centrado
         transcribe_video_btn = ttk_bs.Button(
-            frame,
+            button_container,
             text="🎬 TRANSCRIBIR VIDEO",
             command=self.start_transcribe_video,
             bootstyle="danger-outline",
             width=35
         )
-        transcribe_video_btn.pack(pady=25)
+        transcribe_video_btn.pack(anchor="center")
         
     def create_download_tab(self, notebook):
         frame = ttk_bs.Frame(notebook, padding=20)
@@ -321,9 +381,13 @@ class TranscribeYTGUI:
         quality_combo.pack(fill=X, pady=(0, 15))
         quality_combo.set("720p")
         
-        # Botones de descarga
-        buttons_frame = ttk_bs.Frame(frame)
-        buttons_frame.pack(fill=X, pady=20)
+        # Container para centrar los botones de descarga
+        buttons_container = ttk_bs.Frame(frame)
+        buttons_container.pack(fill=X, pady=20)
+        
+        # Frame interno para los botones centrados
+        buttons_frame = ttk_bs.Frame(buttons_container)
+        buttons_frame.pack(anchor="center")
         
         download_video_btn = ttk_bs.Button(
             buttons_frame,
@@ -344,45 +408,80 @@ class TranscribeYTGUI:
         download_audio_btn.pack(side=LEFT)
         
     def create_settings_frame(self, parent):
-        settings_frame = ttk_bs.LabelFrame(parent, text="⚙️ Configuración General", padding=18, bootstyle="info")
-        settings_frame.pack(fill=X, pady=(0, 20))
+        settings_frame = ttk_bs.LabelFrame(parent, text="⚙️ Configuración General", padding=15, bootstyle="info")
+        settings_frame.pack(fill=X, pady=(0, 10))
         
-        # Ruta de salida
-        ttk_bs.Label(settings_frame, text="Carpeta de destino:").pack(anchor=W, pady=(0, 5))
+        # Contenedor principal
+        main_container = ttk_bs.Frame(settings_frame)
+        main_container.pack(fill=X, expand=True)
         
-        path_frame = ttk_bs.Frame(settings_frame)
-        path_frame.pack(fill=X)
+        # Ruta de salida con mejor espaciado
+        ttk_bs.Label(main_container, text="Carpeta de destino:", font=("Arial", 10, "bold")).pack(anchor=W, pady=(0, 5))
         
-        path_entry = ttk_bs.Entry(path_frame, textvariable=self.output_path, font=("Arial", 11))
-        path_entry.pack(side=LEFT, fill=X, expand=True, padx=(0, 10))
+        path_frame = ttk_bs.Frame(main_container)
+        path_frame.pack(fill=X, pady=(0, 5))
+        
+        path_entry = ttk_bs.Entry(
+            path_frame, 
+            textvariable=self.output_path, 
+            font=("Arial", 10),
+            state="readonly"
+        )
+        path_entry.pack(side=LEFT, fill=X, expand=True, padx=(0, 8))
         
         browse_path_btn = ttk_bs.Button(
             path_frame,
-            text="📁 CAMBIAR RUTA",
+            text="📁 Cambiar",
             command=self.browse_output_path,
             bootstyle="secondary",
-            width=18
+            width=15
         )
         browse_path_btn.pack(side=RIGHT)
         
     def create_progress_frame(self, parent):
-        progress_frame = ttk_bs.Frame(parent)
-        progress_frame.pack(fill=X, pady=(15, 0))
+        progress_frame = ttk_bs.LabelFrame(parent, text="📊 Progreso", padding=15, bootstyle="success")
+        progress_frame.pack(fill=X, pady=(10, 10))
         
-        # Etiqueta de estado
-        status_label = ttk_bs.Label(progress_frame, textvariable=self.status_var, font=("Arial", 10))
-        status_label.pack(anchor=W, pady=(0, 5))
+        # Contenedor para el progreso
+        progress_container = ttk_bs.Frame(progress_frame)
+        progress_container.pack(fill=X, expand=True)
         
-        # Barra de progreso con estilo mejorado
+        # Etiqueta de estado con mejor formato
+        status_label = ttk_bs.Label(
+            progress_container, 
+            textvariable=self.status_var, 
+            font=("Arial", 10, "bold"),
+            bootstyle="info"
+        )
+        status_label.pack(anchor=W, pady=(0, 8))
+        
+        # Barra de progreso con tamaño adaptativo
         self.progress_bar = ttk_bs.Progressbar(
-            progress_frame,
+            progress_container,
             variable=self.progress_var,
             mode='determinate',
             bootstyle="warning-striped",
-            length=450,
-            style="custom.Horizontal.TProgressbar"
+            length=400
         )
-        self.progress_bar.pack(fill=X)
+        self.progress_bar.pack(fill=X, pady=(0, 5))
+        
+    def create_footer_frame(self, parent):
+        """Crear footer con marca registrada"""
+        footer_frame = ttk_bs.Frame(parent)
+        footer_frame.pack(fill=X, pady=(20, 10), expand=False)
+        
+        # Separador visual
+        separator = ttk_bs.Separator(footer_frame, orient="horizontal")
+        separator.pack(fill=X, pady=(0, 10))
+        
+        # Marca registrada con mejor visibilidad
+        copyright_label = ttk_bs.Label(
+            footer_frame,
+            text=f"© {datetime.now().year} Juan Coronato - Todos los derechos reservados",
+            font=("Arial", 10, "italic"),
+            bootstyle="secondary"
+        )
+        copyright_label.pack(anchor="center", pady=(0, 5))
         
     # Funciones auxiliares de la interfaz
     def paste_from_clipboard(self):
@@ -726,13 +825,34 @@ class TranscribeYTGUI:
             self.progress_var.set(0)
             
     def run(self):
-        # Centrar ventana
+        # Centrar ventana y asegurar tamaño mínimo
         self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
-        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.root.winfo_screenheight() // 2) - (height // 2)
+        
+        # Obtener dimensiones de la pantalla
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # Calcular dimensiones apropiadas (80% de la pantalla como máximo)
+        max_width = int(screen_width * 0.8)
+        max_height = int(screen_height * 0.85)
+        
+        # Usar el tamaño configurado o el máximo si es menor
+        width = min(900, max_width)
+        height = min(750, max_height)
+        
+        # Centrar ventana
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+        
+        # Asegurar que la ventana no salga de los límites
+        x = max(0, x)
+        y = max(0, y)
+        
         self.root.geometry(f'{width}x{height}+{x}+{y}')
+        
+        # Configurar redimensionamiento
+        self.root.minsize(850, 700)
+        self.root.maxsize(screen_width, screen_height)
         
         self.root.mainloop()
 
